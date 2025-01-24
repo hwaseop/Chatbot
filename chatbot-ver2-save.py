@@ -33,25 +33,48 @@ def chat_with_gpt(messages):
     )
     return response.choices[0].message.content.strip()
 
-# 채팅 로그 저장 함수
+def extract_chat_topic(messages):
+    """
+    채팅 로그에서 주제를 추출하는 함수.
+    - 사용자 첫 질문을 기반으로 주제를 추출.
+    """
+    for msg in messages:
+        if msg["role"] == "user":
+            # 첫 번째 사용자 메시지를 기준으로 주제 추출
+            return msg["content"].split()[0][:20]  # 첫 단어 또는 첫 20자 반환
+    return "general"  # 기본값
+
 def save_chat_log():
+    # 주제 자동 추출
+    chat_topic = extract_chat_topic(st.session_state.messages)
+    
     # 파일명 생성: 현재 날짜와 채팅 주제를 포함
-    chat_topic = "general"  # 예시로 'general'을 사용, 필요에 따라 변경 가능
     date_str = datetime.now().strftime("%Y%m%d")
     filename = f"{date_str}_{chat_topic}_chat_log.json"
     
-    # 파일 저장 경로
-    file_path = os.path.join("saved_chats", filename)
+    # 사용자 입력 경로 받기
+    custom_path = st.text_input(
+        "저장할 경로를 입력하세요 (기본 경로: 'saved_chats'):", 
+        value="saved_chats"
+    )
     
-    # 디렉토리 생성 (없을 경우)
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    
-    # 파일 저장
-    with open(file_path, "w", encoding='utf-8') as file:
-        json.dump(st.session_state.messages, file, ensure_ascii=False, indent=4)
-    
-    # 저장된 위치 알림
-    st.success(f"채팅 로그가 저장되었습니다: {file_path}")
+    if st.button("파일 저장"):
+        try:
+            # 사용자 입력 경로와 파일명 결합
+            file_path = os.path.join(custom_path, filename)
+            
+            # 디렉토리 생성 (없을 경우)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            # 파일 저장
+            with open(file_path, "w", encoding='utf-8') as file:
+                json.dump(st.session_state.messages, file, ensure_ascii=False, indent=4)
+            
+            # 성공 메시지 표시
+            st.success(f"채팅 로그가 저장되었습니다: {file_path}")
+        except Exception as e:
+            # 오류 메시지 표시
+            st.error(f"채팅 로그 저장 중 오류가 발생했습니다: {e}")
 
 # 채팅 내용 초기화 함수
 def clear_chat():
